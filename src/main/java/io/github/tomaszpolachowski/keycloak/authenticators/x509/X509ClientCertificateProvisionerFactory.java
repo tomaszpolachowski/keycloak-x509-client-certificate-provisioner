@@ -29,7 +29,7 @@ import org.keycloak.models.KeycloakSession;
  */
 public class X509ClientCertificateProvisionerFactory extends AbstractX509ClientCertificateAuthenticatorFactory {
 
-    public static final String PROVIDER_ID = "auth-x509-client-certificate-provisioner";
+    public static final String PROVIDER_ID = "auth-x509-client-cert-provisioner";
     public static final X509ClientCertificateProvisioner SINGLETON =
             new X509ClientCertificateProvisioner();
 
