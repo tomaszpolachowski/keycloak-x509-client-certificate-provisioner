@@ -15,7 +15,7 @@
  *
  */
 
-package org.keycloak.authentication.authenticators.x509;
+package io.github.tomaszpolachowski.keycloak.authentication.authenticators.x509;
 
 import java.security.cert.X509Certificate;
 import java.util.LinkedList;
@@ -29,6 +29,9 @@ import jakarta.ws.rs.core.Response;
 import org.keycloak.authentication.AuthenticationFlowContext;
 import org.keycloak.authentication.authenticators.browser.AbstractUsernameFormAuthenticator;
 import org.keycloak.authentication.authenticators.util.AuthenticatorUtils;
+import org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticator;
+import org.keycloak.authentication.authenticators.x509.CertificateValidator;
+import org.keycloak.authentication.authenticators.x509.X509AuthenticatorConfigModel;
 import org.keycloak.events.Details;
 import org.keycloak.events.Errors;
 import org.keycloak.forms.login.LoginFormsProvider;

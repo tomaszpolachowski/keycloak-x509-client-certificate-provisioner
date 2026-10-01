@@ -15,8 +15,9 @@
  *
  */
 
-package org.keycloak.authentication.authenticators.x509;
+package io.github.tomaszpolachowski.keycloak.authentication.authenticators.x509;
 
+import org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticatorFactory;
 import org.keycloak.authentication.Authenticator;
 import org.keycloak.models.AuthenticationExecutionModel;
 import org.keycloak.models.KeycloakSession;
@@ -26,7 +27,7 @@ import org.keycloak.models.KeycloakSession;
  * @version $Revision: 1 $
  *
  */
-public class X509ClientCertificateProvisionerFactory  extends AbstractX509ClientCertificateAuthenticatorFactory {
+public class X509ClientCertificateProvisionerFactory extends AbstractX509ClientCertificateAuthenticatorFactory {
 
     public static final String PROVIDER_ID = "auth-x509-client-certificate-provisioner";
     public static final X509ClientCertificateProvisioner SINGLETON =
