@@ -20,6 +20,8 @@ package io.github.tomaszpolachowski.keycloak.authentication.authenticators.x509;
 import static org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticator.MAPPING_SOURCE_CERT_SUBJECTALTNAME_OTHERNAME;
 import static org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticator.MAPPING_SOURCE_CERT_SUBJECTDN;
 
+import org.keycloak.models.AuthenticatorConfigModel;
+
 import org.keycloak.authentication.authenticators.x509.X509AuthenticatorConfigModel;
 
 /**
@@ -29,7 +31,7 @@ import org.keycloak.authentication.authenticators.x509.X509AuthenticatorConfigMo
  */
 public class X509ClientCertificateProvisionerConfigModel extends X509AuthenticatorConfigModel {
     
-    public X509ClientCertificateProvisionerConfigModel(X509AuthenticatorConfigModel model) {
+    public X509ClientCertificateProvisionerConfigModel(AuthenticatorConfigModel model) {
         super(model);
     }
 
@@ -49,7 +51,7 @@ public class X509ClientCertificateProvisionerConfigModel extends X509Authenticat
     }
 
     public String getMappingSourceFirstNameDn() {
-        return getConfig().getOrDefault(X509ClientCertificateProvisioner.MAPPING_SOURCE_FIRSTNAME_SELECTION_DN, "G");
+        return getConfig().getOrDefault(X509ClientCertificateProvisioner.MAPPING_SOURCE_FIRSTNAME_SELECTION_DN, "GIVENNAME");
     }
 
     public MappingSourceType getMappingSourceLastNameType() {
@@ -57,6 +59,6 @@ public class X509ClientCertificateProvisionerConfigModel extends X509Authenticat
     }
 
     public String getMappingSourceLastNameDn() {
-        return getConfig().getOrDefault(X509ClientCertificateProvisioner.MAPPING_SOURCE_LASTNAME_SELECTION_DN, "SN");
+        return getConfig().getOrDefault(X509ClientCertificateProvisioner.MAPPING_SOURCE_LASTNAME_SELECTION_DN, "SURNAME");
     }
 }
