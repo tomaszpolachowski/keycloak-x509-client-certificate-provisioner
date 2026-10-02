@@ -18,10 +18,13 @@
 package io.github.tomaszpolachowski.keycloak.authentication.authenticators.x509;
 
 import java.lang.module.ModuleDescriptor.Version;
+import java.security.cert.PKIXCertPathBuilderResult;
 import java.security.cert.X509Certificate;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import javax.security.auth.x500.X500Principal;
 
 import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
@@ -33,6 +36,9 @@ import org.keycloak.authentication.authenticators.util.AuthenticatorUtils;
 import org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticator;
 import org.keycloak.authentication.authenticators.x509.CertificateValidator;
 import org.keycloak.authentication.authenticators.x509.X509AuthenticatorConfigModel;
+import org.keycloak.common.crypto.CryptoIntegration;
+import org.keycloak.common.crypto.UserIdentityExtractor;
+import org.keycloak.common.crypto.UserIdentityExtractorProvider;
 import org.keycloak.events.Details;
 import org.keycloak.events.Errors;
 import org.keycloak.forms.login.LoginFormsProvider;
@@ -48,6 +54,10 @@ import org.keycloak.services.ServicesLogger;
 import org.jboss.logging.Logger;
 
 import static org.keycloak.authentication.authenticators.util.AuthenticatorUtils.getDisabledByBruteForceEventError;
+import static org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticator.MAPPING_SOURCE_CERT_SUBJECTALTNAME_EMAIL;
+import static org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticator.MAPPING_SOURCE_CERT_SUBJECTALTNAME_OTHERNAME;
+import static org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticator.MAPPING_SOURCE_CERT_SUBJECTDN;
+import static org.keycloak.authentication.authenticators.x509.X509AuthenticatorConfigModel.MappingSourceType;
 
 /**
  * @author <a href="mailto:tomasz@polachowski.pl">Tomasz Polachowski</a>
@@ -57,6 +67,19 @@ import static org.keycloak.authentication.authenticators.util.AuthenticatorUtils
 public class X509ClientCertificateProvisioner extends AbstractX509ClientCertificateAuthenticator {
 
     private final static Logger logger = Logger.getLogger(X509ClientCertificateProvisioner.class);
+
+    private static final Map<String, String> CUSTOM_OIDS = Map.of(
+            "2.5.4.5", "serialNumber".toUpperCase(Locale.ROOT),
+            "2.5.4.15", "businessCategory".toUpperCase(Locale.ROOT),
+            "1.3.6.1.4.1.311.60.2.1.3", "jurisdictionCountryName".toUpperCase(Locale.ROOT),
+            "1.2.840.113549.1.9.1", "emailAddress".toUpperCase(Locale.ROOT));
+
+    public static final String MAPPING_SOURCE_EMAIL_SELECTION = "x509-cert-auth.mapping-source-selection.email";
+    public static final String MAPPING_SOURCE_EMAIL_SELECTION_DN = "x509-cert-auth.mapping-source-selection.email.dn";
+    public static final String MAPPING_SOURCE_FIRSTNAME_SELECTION = "x509-cert-auth.mapping-source-selection.firstname";
+    public static final String MAPPING_SOURCE_FIRSTNAME_SELECTION_DN = "x509-cert-auth.mapping-source-selection.firstname.dn";
+    public static final String MAPPING_SOURCE_LASTNAME_SELECTION = "x509-cert-auth.mapping-source-selection.lastname";
+    public static final String MAPPING_SOURCE_LASTNAME_SELECTION_DN = "x509-cert-auth.mapping-source-selection.lastname.dn";
 
     @Override
     public void close() {
@@ -95,9 +118,9 @@ public class X509ClientCertificateProvisioner extends AbstractX509ClientCertific
             saveX509CertificateAuditDataToAuthSession(context, certs[0]);
             recordX509CertificateAuditDataViaContextEvent(context);
 
-            X509AuthenticatorConfigModel config = null;
+            X509ClientCertificateProvisionerConfigModel config = null;
             if (context.getAuthenticatorConfig() != null && context.getAuthenticatorConfig().getConfig() != null) {
-                config = new X509AuthenticatorConfigModel(context.getAuthenticatorConfig());
+                config = new X509ClientCertificateProvisionerConfigModel((X509AuthenticatorConfigModel)context.getAuthenticatorConfig());
             }
             if (config == null) {
                 logger.warn("[authenticate] x509 Client Certificate Authentication configuration is not available.");
@@ -115,8 +138,13 @@ public class X509ClientCertificateProvisioner extends AbstractX509ClientCertific
             try {
                 CertificateValidator.CertificateValidatorBuilder builder = certificateValidationParameters(session, config);
                 CertificateValidator validator = builder.build(certs);
+                PKIXCertPathBuilderResult certPathBuilderResult = validator.validateTrust().getCertPathBuilderResult();
+                X509Certificate certificate = certPathBuilderResult.getTrustAnchor().getTrustedCert();
+                X500Principal principal = certificate.getSubjectX500Principal();
+                String dn = principal.getName(X500Principal.RFC2253, CUSTOM_OIDS);
+                logger.infof("[authenticate] Issuer DN is '%s'", dn);
                 if (checkCASubjectDN) {
-                    validator.validateTrust()
+                    validator
                         .validateCASubjectDN()
                         .validateTimestamps()
                         .validateKeyUsage()
@@ -183,13 +211,6 @@ public class X509ClientCertificateProvisioner extends AbstractX509ClientCertific
             }
 
             if (user == null) {
-                // // TODO use specific locale to load error messages
-                // String errorMessage = "X509 certificate authentication's failed.";
-                // // TODO is calling form().setErrors enough to show errors on login screen?
-                // context.challenge(createErrorResponse(context, certs[0].getSubjectDN().getName(),
-                //         errorMessage, "Invalid user"));
-                // context.attempted();
-                // return;
                 // add user if not yet exists
                 if (AuthenticatorUtils.isUsernameTooLong(username)) {
                     context.getEvent().error(Errors.INVALID_USER_CREDENTIALS);
@@ -201,10 +222,48 @@ public class X509ClientCertificateProvisioner extends AbstractX509ClientCertific
                     context.attempted();
                     return;
                 }
-                user = session.users().addUser(realm, username);
+                UserIdentityExtractorProvider userDataExtractorProvider = CryptoIntegration.getProvider().getIdentityExtractorProvider();
+                UserIdentityExtractor emailExtractor = switch (config.getMappingSourceEmailType()) {
+                    case SUBJECTALTNAME_EMAIL -> userDataExtractorProvider.getSubjectAltNameExtractor(1);
+                    case SUBJECTALTNAME_OTHERNAME -> userDataExtractorProvider.getSubjectAltNameExtractor(0);
+                    case SUBJECTDN -> userDataExtractorProvider.getX500NameExtractor(config.getMappingSourceEmailDn(), c -> c[0].getSubjectX500Principal());
+                    default -> null;
+                };
+                UserIdentityExtractor firstNameExtractor = switch (config.getMappingSourceFirstNameType()) {
+                    case SUBJECTALTNAME_EMAIL -> userDataExtractorProvider.getSubjectAltNameExtractor(1);
+                    case SUBJECTALTNAME_OTHERNAME -> userDataExtractorProvider.getSubjectAltNameExtractor(0);
+                    case SUBJECTDN -> userDataExtractorProvider.getX500NameExtractor(config.getMappingSourceFirstNameDn(), c -> c[0].getSubjectX500Principal());
+                    default -> null;
+                };
+                UserIdentityExtractor lastNameExtractor = switch (config.getMappingSourceLastNameType()) {
+                    case SUBJECTALTNAME_EMAIL -> userDataExtractorProvider.getSubjectAltNameExtractor(1);
+                    case SUBJECTALTNAME_OTHERNAME -> userDataExtractorProvider.getSubjectAltNameExtractor(0);
+                    case SUBJECTDN -> userDataExtractorProvider.getX500NameExtractor(config.getMappingSourceLastNameDn(), c -> c[0].getSubjectX500Principal());
+                    default -> null;
+                };
+                Object emailParameter = null, firstNameParameter = null, lastNameParameter = null;
+                if (emailExtractor != null && firstNameExtractor != null && lastNameExtractor != null) {
+                    emailParameter = emailExtractor.extractUserIdentity(certs);
+                    firstNameParameter = firstNameExtractor.extractUserIdentity(certs);
+                    lastNameParameter = lastNameExtractor.extractUserIdentity(certs);
+                }
+                String email = null, firstName = null, lastName = null;
+                if (emailParameter != null && firstNameParameter != null && lastNameParameter != null)
+                {
+                    email = emailParameter.toString();
+                    firstName = firstNameParameter.toString();
+                    lastName = lastNameParameter.toString();
+                }
+                if (email != null && !email.isBlank() && firstName != null && !firstName.isBlank() && lastName != null && !lastName.isBlank())
+                {
+                    user = session.users().addUser(realm, username);
+                    user.setEmail(email);
+                    user.setFirstName(firstName);
+                    user.setLastName(lastName);
+                }
                 if (user != null) {
+                    user.setEmailVerified(true);
                     user.setEnabled(true);
-                    // TODO map basic attributes
                 }
             }
 

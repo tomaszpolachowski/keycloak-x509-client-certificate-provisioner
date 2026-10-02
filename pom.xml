@@ -6,7 +6,7 @@
 
   <groupId>io.github.tomaszpolachowski</groupId>
   <artifactId>keycloak-validate-x509-certificate-user-create</artifactId>
-  <version>20261001.0</version>
+  <version>20261002.1</version>
 
   <name>keycloak-validate-x509-certificate-user-create</name>
   <url>https://github.com/tomaszpolachowski/keycloak-validate-x509-certificate-user-create</url>
