@@ -17,6 +17,7 @@
 
 package io.github.tomaszpolachowski.keycloak.authentication.authenticators.x509;
 
+import java.lang.module.ModuleDescriptor.Version;
 import java.security.cert.X509Certificate;
 import java.util.LinkedList;
 import java.util.List;
@@ -66,6 +67,17 @@ public class X509ClientCertificateProvisioner extends AbstractX509ClientCertific
     public void authenticate(AuthenticationFlowContext context) {
 
         try {
+            boolean checkCASubjectDN = true;
+            try {
+                Version currentVersion = Version.parse(System.getProperty("kc.version"));
+                Version expectedVersion = Version.parse("26.8.0");
+                if (currentVersion.compareTo(expectedVersion) < 0) {
+                    checkCASubjectDN = false;
+                }
+            } catch (IllegalArgumentException e) {
+                checkCASubjectDN = false;
+            }
+
             KeycloakSession session = context.getSession();
             RealmModel realm = context.getRealm();
 
@@ -93,7 +105,8 @@ public class X509ClientCertificateProvisioner extends AbstractX509ClientCertific
                 context.attempted();
                 return;
             }
-            if (config.getCASubjectDN().isEmpty()) {
+
+            if (checkCASubjectDN && config.getCASubjectDN().isEmpty()) {
                 logger.warnf("[authenticate] Option '%s' is empty, this configuration is deprecated, please configure it for the authenticator in realm '%s'",
                         CERTIFICATE_CA_SUBJECT_DN, realm.getName());
             }
@@ -102,13 +115,22 @@ public class X509ClientCertificateProvisioner extends AbstractX509ClientCertific
             try {
                 CertificateValidator.CertificateValidatorBuilder builder = certificateValidationParameters(session, config);
                 CertificateValidator validator = builder.build(certs);
-                validator.validateTrust()
-                         .validateCASubjectDN()
-                         .validateTimestamps()
-                         .validateKeyUsage()
-                         .validateExtendedKeyUsage()
-                         .validatePolicy()
-                         .checkRevocationStatus();
+                if (checkCASubjectDN) {
+                    validator.validateTrust()
+                        .validateCASubjectDN()
+                        .validateTimestamps()
+                        .validateKeyUsage()
+                        .validateExtendedKeyUsage()
+                        .validatePolicy()
+                        .checkRevocationStatus();
+                } else {
+                    validator.validateTrust()
+                        .validateTimestamps()
+                        .validateKeyUsage()
+                        .validateExtendedKeyUsage()
+                        .validatePolicy()
+                        .checkRevocationStatus();
+                }
             } catch(Exception e) {
                 logger.error(e.getMessage(), e);
                 // TODO use specific locale to load error messages
