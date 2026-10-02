@@ -84,7 +84,7 @@ public class X509ClientCertificateProvisionerFactory extends AbstractX509ClientC
             firstNameDnMapping.setName(X509ClientCertificateProvisioner.MAPPING_SOURCE_FIRSTNAME_SELECTION_DN);
             firstNameDnMapping.setLabel("DN attribute for user's first name");
             firstNameDnMapping.setHelpText(String.format("An attribute of certificate's Distinguish Name (DN) from which to get user's first name. Required if %s is selected as source", MAPPING_SOURCE_CERT_SUBJECTDN));
-            firstNameDnMapping.setDefaultValue("G");
+            firstNameDnMapping.setDefaultValue("GIVENNAME");
 
             ProviderConfigProperty lastNameMappingMethodList = new ProviderConfigProperty();
             lastNameMappingMethodList.setType(ProviderConfigProperty.LIST_TYPE);
@@ -99,7 +99,7 @@ public class X509ClientCertificateProvisionerFactory extends AbstractX509ClientC
             lastNameDnMapping.setName(X509ClientCertificateProvisioner.MAPPING_SOURCE_LASTNAME_SELECTION_DN);
             lastNameDnMapping.setLabel("DN attribute for user's last name");
             lastNameDnMapping.setHelpText(String.format("An attribute of certificate's Distinguish Name (DN) from which to get user's last name. Required if %s is selected as source", MAPPING_SOURCE_CERT_SUBJECTDN));
-            lastNameDnMapping.setDefaultValue("SN");
+            lastNameDnMapping.setDefaultValue("SURNAME");
 
             configProperties = asList(emailMappingMethodList,
                 emailDnMapping,

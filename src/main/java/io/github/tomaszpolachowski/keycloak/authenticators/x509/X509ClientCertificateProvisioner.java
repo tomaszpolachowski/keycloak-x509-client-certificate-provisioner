@@ -120,7 +120,7 @@ public class X509ClientCertificateProvisioner extends AbstractX509ClientCertific
 
             X509ClientCertificateProvisionerConfigModel config = null;
             if (context.getAuthenticatorConfig() != null && context.getAuthenticatorConfig().getConfig() != null) {
-                config = new X509ClientCertificateProvisionerConfigModel((X509AuthenticatorConfigModel)context.getAuthenticatorConfig());
+                config = new X509ClientCertificateProvisionerConfigModel(context.getAuthenticatorConfig());
             }
             if (config == null) {
                 logger.warn("[authenticate] x509 Client Certificate Authentication configuration is not available.");
