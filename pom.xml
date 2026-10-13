@@ -6,7 +6,7 @@
 
   <groupId>io.github.tomaszpolachowski</groupId>
   <artifactId>keycloak-validate-x509-certificate-user-create</artifactId>
-  <version>20261002.1</version>
+  <version>20261013.0</version>
 
   <name>keycloak-validate-x509-certificate-user-create</name>
   <url>https://github.com/tomaszpolachowski/keycloak-validate-x509-certificate-user-create</url>
@@ -14,10 +14,10 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- Compatibility with Keycloak 20 to 25 -->
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>25</maven.compiler.release>
 
     <!-- Versions of dependencies -->
-    <keycloak.version>26.8.0</keycloak.version>
+    <keycloak.version>26.8.1</keycloak.version>
     <jakarta-ws-rs.jakarta-ws-rs-api.version>4.0.0</jakarta-ws-rs.jakarta-ws-rs-api.version>
     <jboss.jboss-logging.version>3.6.3.Final</jboss.jboss-logging.version>
     <jboss.commons-logging-jboss-logging.version>2.0.0.Final</jboss.commons-logging-jboss-logging.version>

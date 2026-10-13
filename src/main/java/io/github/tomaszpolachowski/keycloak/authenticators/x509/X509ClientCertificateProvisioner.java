@@ -81,6 +81,10 @@ public class X509ClientCertificateProvisioner extends AbstractX509ClientCertific
     public static final String MAPPING_SOURCE_LASTNAME_SELECTION = "x509-cert-auth.mapping-source-selection.lastname";
     public static final String MAPPING_SOURCE_LASTNAME_SELECTION_DN = "x509-cert-auth.mapping-source-selection.lastname.dn";
 
+    public X509ClientCertificateProvisioner() {
+        super(false);
+    }
+
     @Override
     public void close() {
 
